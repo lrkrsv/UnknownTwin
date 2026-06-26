@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { BookOpen, Brain, HardDrive, MessageSquare, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoginForm } from "@/components/auth/login-form";
+import { SignupForm } from "@/components/auth/signup-form";
 import { APP_NAME, UNIVERSITY_NAME } from "@/lib/constants";
 
 const features = [
@@ -68,16 +71,16 @@ export default function LandingPage() {
               running fully offline on your machine.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button size="lg" nativeButton={false} render={<Link href="/signup" />}>
-                Get started
+              <Button size="lg" nativeButton={false} render={<Link href="#sign-in" />}>
+                Sign in
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 nativeButton={false}
-                render={<Link href="/login" />}
+                render={<Link href="#sign-up" />}
               >
-                Sign in
+                Create account
               </Button>
             </div>
           </div>
@@ -114,17 +117,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6">
-          <h2 className="font-heading text-2xl font-semibold">
-            Ready to explore your AI campus?
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Create a local account — no external services required.
-          </p>
-          <Button className="mt-6" nativeButton={false} render={<Link href="/signup" />}>
-            Create account
-          </Button>
+      <section className="border-t bg-muted/30" id="sign-in">
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="font-heading text-2xl font-semibold">
+              Sign in or create an account
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              Local accounts only — no external services required.
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2">
+            <Card id="sign-up">
+              <CardHeader>
+                <CardTitle className="font-heading text-lg">Sign up</CardTitle>
+                <CardDescription>New student account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SignupForm />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg">Sign in</CardTitle>
+                <CardDescription>Welcome back</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense
+                  fallback={
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  }
+                >
+                  <LoginForm />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
     </>

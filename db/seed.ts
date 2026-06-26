@@ -3,27 +3,7 @@ import { randomUUID } from "crypto";
 import { closeDb, getDb } from "@/lib/db";
 import { runMigrations } from "@/lib/db/migrate";
 import { ingestDocument } from "@/lib/ingest";
-
-const DEFAULT_USERS = [
-  {
-    email: "admin@unknown-twin.local",
-    password: "admin1234",
-    fullName: "Admin User",
-    role: "admin" as const,
-  },
-  {
-    email: "mentor@unknown-twin.local",
-    password: "mentor1234",
-    fullName: "Mentor User",
-    role: "mentor" as const,
-  },
-  {
-    email: "student@unknown-twin.local",
-    password: "student1234",
-    fullName: "Student User",
-    role: "student" as const,
-  },
-];
+import { SEED_USERS } from "@/lib/seed-users";
 
 const SEED_KB = {
   title: "Business Model Canvas",
@@ -50,7 +30,7 @@ export function seedUsers(): void {
     VALUES (?, ?, ?, ?, ?)
   `);
 
-  for (const user of DEFAULT_USERS) {
+  for (const user of SEED_USERS) {
     const passwordHash = bcrypt.hashSync(user.password, 12);
     insert.run(randomUUID(), user.email, passwordHash, user.fullName, user.role);
   }
@@ -76,7 +56,7 @@ export async function seedKnowledgeBase(): Promise<number> {
 
   const admin = db
     .prepare("SELECT id FROM users WHERE email = ? LIMIT 1")
-    .get("admin@unknown-twin.local") as { id: string } | undefined;
+    .get("admin@demo.test") as { id: string } | undefined;
 
   console.log("Embedding seed knowledge base (first run downloads the model)...");
   const result = await ingestDocument({
@@ -96,11 +76,11 @@ async function main() {
   const chunkCount = await seedKnowledgeBase();
   closeDb();
 
-  console.log("\nDefault users:");
-  for (const u of DEFAULT_USERS) {
+  console.log("\nSeeded demo users (Milestone 1):");
+  for (const u of SEED_USERS) {
     console.log(`  ${u.role.padEnd(8)} ${u.email} / ${u.password}`);
   }
-  console.log(`\nTotal seeded KB chunks: ${chunkCount}`);
+  console.log(`\nKnowledge base chunks: ${chunkCount}`);
 }
 
 main().catch((err) => {

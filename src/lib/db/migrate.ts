@@ -9,15 +9,28 @@ export function runMigrations(): string[] {
   const database = openDatabase();
 
   database.exec(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
+    CREATE TABLE IF NOT EXISTS _migrations (
       version TEXT PRIMARY KEY,
       applied_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
+  // Backward compat: copy from legacy schema_migrations table if present
+  const legacy = database
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
+    )
+    .get() as { name: string } | undefined;
+  if (legacy) {
+    database.exec(`
+      INSERT OR IGNORE INTO _migrations (version, applied_at)
+      SELECT version, applied_at FROM schema_migrations;
+    `);
+  }
+
   const applied = new Set(
     database
-      .prepare("SELECT version FROM schema_migrations ORDER BY version")
+      .prepare("SELECT version FROM _migrations ORDER BY version")
       .all()
       .map((row) => (row as { version: string }).version)
   );
@@ -36,7 +49,7 @@ export function runMigrations(): string[] {
     const run = database.transaction(() => {
       database.exec(sql);
       database
-        .prepare("INSERT INTO schema_migrations (version) VALUES (?)")
+        .prepare("INSERT INTO _migrations (version) VALUES (?)")
         .run(file);
     });
     run();

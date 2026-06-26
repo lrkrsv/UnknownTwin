@@ -73,7 +73,7 @@ export function SignupForm() {
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="you@unknown-twin.local"
+          placeholder="you@demo.test"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

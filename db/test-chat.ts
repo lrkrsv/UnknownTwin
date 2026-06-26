@@ -19,7 +19,7 @@ import { retrieve } from "@/lib/retrieve";
 
 function ensureStudent(): string {
   const db = getDb();
-  const email = "student@unknown-twin.local";
+  const email = "student@demo.test";
   const existing = db
     .prepare("SELECT id FROM users WHERE email = ?")
     .get(email) as { id: string } | undefined;

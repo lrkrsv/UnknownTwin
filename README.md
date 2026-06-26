@@ -61,7 +61,7 @@ npm run dev
 # 2. Log in as admin and ingest (save the session cookie)
 curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@unknown-twin.local","password":"admin1234"}'
+  -d '{"email":"admin@demo.test","password":"admin1234"}'
 
 curl -b cookies.txt -X POST http://localhost:3000/api/admin/documents \
   -H 'Content-Type: application/json' \
@@ -73,18 +73,29 @@ curl -b cookies.txt -X POST http://localhost:3000/api/admin/documents \
 
 ---
 
-## Milestone 1 — What's included
+## Milestone 1 — Foundation (verified)
 
-- Next.js 15 scaffold with TypeScript (strict), Tailwind CSS, shadcn/ui
-- SQLite database with idempotent migration runner (`db/migrations/`)
-- Full schema created (users, sessions, documents, chunks, conversations, messages, escalations, exercises, assignments, notifications)
-- Local auth: signup/login API, bcrypt password hashing, JWT session cookies
-- Role-based route protection via middleware (`student` | `mentor` | `admin`)
-- Seed script with default admin, mentor, and student accounts
-- Base layouts: marketing landing, auth pages, authenticated app shell
-- Route stubs for all planned features
-- `lib/prompts.ts` with the Unknown Twin system prompt (used from M3)
-- `.env.example` with local-only config
+- Next.js 15 + TypeScript + Tailwind + shadcn/ui
+- `lib/db.ts` — SQLite singleton at `./data/aicampus.db` (WAL + foreign keys)
+- `db/migrate.ts` — idempotent runner tracking `_migrations`
+- `lib/auth.ts` — `getCurrentUser()`, `requireRole()`, bcrypt + JWT cookies (`jose`)
+- Auth API: `POST /api/auth/signup`, `login`, `logout` (Zod-validated)
+- `middleware.ts` — protects `/chat`, `/dashboard`, `/assignments`, `/mentor`, `/admin`
+- Landing `/` with inline login + signup forms; role-gated placeholder pages
+- `npm run migrate` and `npm run seed`
+
+### Milestone 1 acceptance checklist
+
+| # | Test | Status |
+|---|------|--------|
+| 1 | `npm install` → `npm run migrate` → `npm run seed` → `npm run dev` | ✅ |
+| 2 | Sign up new student; duplicate email rejected | ✅ |
+| 3 | Log out / log in; wrong password → generic error | ✅ |
+| 4 | Logged-out `/chat` → redirected to login | ✅ |
+| 5 | Student blocked from `/admin` and `/mentor` | ✅ |
+| 6 | `admin@demo.test` → `/admin`; `mentor@demo.test` → `/mentor` | ✅ |
+| 7 | `./data/aicampus.db` has `users` with bcrypt hashes | ✅ |
+| 8 | No external services in auth flow | ✅ |
 
 ---
 
@@ -106,7 +117,11 @@ npm install
 cp .env.example .env.local
 # Edit JWT_SECRET to a random string (min 32 chars)
 
-# 3. Create database and seed default users
+# 3. Create database and seed demo users
+npm run migrate
+npm run seed
+
+# Or combined:
 npm run db:setup
 
 # 4. Start dev server
@@ -115,13 +130,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Default seed accounts
+### Demo seed accounts (Milestone 1)
 
 | Role | Email | Password |
 |------|-------|----------|
-| admin | `admin@unknown-twin.local` | `admin1234` |
-| mentor | `mentor@unknown-twin.local` | `mentor1234` |
-| student | `student@unknown-twin.local` | `student1234` |
+| admin | `admin@demo.test` | `admin1234` |
+| mentor | `mentor@demo.test` | `mentor1234` |
+| student | `student@demo.test` | `student1234` |
 
 ---
 

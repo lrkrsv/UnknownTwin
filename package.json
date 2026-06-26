@@ -7,10 +7,11 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "migrate": "tsx db/migrate.ts",
+    "seed": "tsx db/seed.ts",
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
-    "db:setup": "npm run db:migrate && npm run db:seed",
-    "seed": "tsx db/seed.ts",
+    "db:setup": "npm run migrate && npm run seed",
     "test:retrieve": "tsx db/test-retrieve.ts",
     "test:chat": "tsx db/test-chat.ts"
   },
