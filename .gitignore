@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local data (SQLite DB, uploads, model cache)
+/data/
+
 # vercel
 .vercel
 

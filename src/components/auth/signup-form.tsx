@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
 import { signupSchema } from "@/lib/validations/auth";
 
 export function SignupForm() {
@@ -28,23 +27,25 @@ export function SignupForm() {
       return;
     }
 
-    const supabase = createClient();
-
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName, role: "student" },
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/chat`,
-        },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          fullName: parsed.data.fullName,
+        }),
       });
-      if (error) throw error;
+      const data = await res.json();
 
-      toast.success(
-        "Account created. Check your email to confirm, or sign in if confirmation is disabled."
-      );
-      router.push("/login");
+      if (!res.ok) {
+        throw new Error(data.error ?? "Sign up failed");
+      }
+
+      toast.success("Account created — welcome to AI Campus!");
+      router.push("/chat");
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
     } finally {
@@ -67,12 +68,12 @@ export function SignupForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">University email</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="you@university.edu"
+          placeholder="you@unknown-twin.local"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

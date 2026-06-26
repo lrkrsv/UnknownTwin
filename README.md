@@ -1,136 +1,140 @@
-<<<<<<< HEAD
-# UnknownTwin
-=======
 # AI Campus
 
-An AI-powered digital twin of your university — giving every student a personal **AI Professor**, **AI Coach**, and **AI Mentor**, all grounded exclusively in the university's official knowledge base.
+An AI-powered **digital twin of Unknown Twin** — giving every student a personal AI Professor, AI Coach, and AI Mentor, grounded exclusively in the university's official knowledge base.
 
 > **Core rule:** The AI answers using retrieved university content (RAG). It never invents academic content or policies. When uncertain, it escalates to a human mentor whose answer is fed back into the knowledge base.
 
+> **Fully local:** Everything runs on one machine. SQLite database, local embeddings (Transformers.js), local LLM — no cloud services, no API keys, no accounts.
+
 ---
 
-## Tech Stack
+## Tech Stack (local-only)
 
 | Layer | Choice |
 |-------|--------|
 | Framework | Next.js 15 (App Router, TypeScript) |
 | Styling | Tailwind CSS + shadcn/ui |
-| Database / Auth | Supabase (Postgres + Auth) |
-| Client state | TanStack Query |
+| Database | SQLite via `better-sqlite3` → `./data/aicampus.db` |
+| Vector store | Embeddings as JSON in SQLite; cosine similarity in Node |
+| Embeddings | `@huggingface/transformers` — Xenova/all-MiniLM-L6-v2 (384 dims) *(M2)* |
+| LLM | Pluggable `lib/llm.ts` — Transformers.js (default) or Ollama *(M3)* |
+| Auth | Local bcrypt passwords + signed httpOnly JWT cookies (`jose`) |
+| File storage | `./data/uploads/` |
+| Notifications | In-app only (SQLite `notifications` table) *(M4)* |
 | Validation | Zod |
+| Client state | TanStack Query |
 
 ---
 
 ## Milestone 1 — What's included
 
-- Next.js 15 scaffold with TypeScript (strict), Tailwind CSS, and shadcn/ui
-- Supabase client utilities (browser, server, middleware)
-- Email + password auth and magic link login
-- `profiles` table with roles (`student` \| `mentor` \| `admin`) and RLS policies
-- Protected routes via Next.js middleware (role-aware for `/mentor` and `/admin`)
+- Next.js 15 scaffold with TypeScript (strict), Tailwind CSS, shadcn/ui
+- SQLite database with idempotent migration runner (`db/migrations/`)
+- Full schema created (users, sessions, documents, chunks, conversations, messages, escalations, exercises, assignments, notifications)
+- Local auth: signup/login API, bcrypt password hashing, JWT session cookies
+- Role-based route protection via middleware (`student` | `mentor` | `admin`)
+- Seed script with default admin, mentor, and student accounts
 - Base layouts: marketing landing, auth pages, authenticated app shell
-- Route stubs: `/chat`, `/dashboard`, `/assignments`, `/mentor`, `/admin`, `/admissions`
-- TanStack Query provider wired at the root
-- Complete `.env.example`
+- Route stubs for all planned features
+- `lib/prompts.ts` with the Unknown Twin system prompt (used from M3)
+- `.env.example` with local-only config
 
 ---
 
 ## Prerequisites
 
-- Node.js 20+
-- A [Supabase](https://supabase.com) project
-- npm
+- **Node.js 20+**
+- **npm**
+- A C++ build toolchain for `better-sqlite3` and `bcrypt` native modules (prebuilt binaries usually work on macOS/Linux)
 
 ---
 
-## Setup
-
-### 1. Clone and install
+## Quick start
 
 ```bash
+# 1. Install dependencies
 npm install
-```
 
-### 2. Configure environment
-
-```bash
+# 2. Configure environment
 cp .env.example .env.local
-```
+# Edit JWT_SECRET to a random string (min 32 chars)
 
-Fill in at minimum:
+# 3. Create database and seed default users
+npm run db:setup
 
-- `NEXT_PUBLIC_UNIVERSITY_NAME` — displayed across the app
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-### 3. Supabase project setup
-
-1. Create a new project at [supabase.com](https://supabase.com).
-2. Go to **Authentication → Providers → Email** and enable:
-   - Email provider
-   - Confirm email (optional for local dev — you can disable it)
-   - Magic Link (OTP)
-3. Go to **Authentication → URL Configuration** and add:
-   - Site URL: `http://localhost:3000`
-   - Redirect URLs: `http://localhost:3000/auth/callback`
-4. Open the **SQL Editor** and run the migration:
-
-```bash
-# File: supabase/migrations/001_profiles.sql
-```
-
-Paste the contents of `supabase/migrations/001_profiles.sql` and execute.
-
-### 4. Run the dev server
-
-```bash
+# 4. Start dev server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Default seed accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| admin | `admin@unknown-twin.local` | `admin1234` |
+| mentor | `mentor@unknown-twin.local` | `mentor1234` |
+| student | `student@unknown-twin.local` | `student1234` |
+
+---
+
+## Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | *(required)* | Secret for signing session cookies (min 32 chars) |
+| `DATABASE_PATH` | `./data/aicampus.db` | SQLite database file path |
+| `LLM_ENGINE` | `transformers` | `transformers` (in-process) or `ollama` *(M3)* |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama server URL *(M3)* |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Ollama model name *(M3)* |
+| `CONFIDENCE_THRESHOLD` | `0.55` | RAG confidence cutoff *(M3)* |
+| `RAG_TOP_K` | `6` | Chunks retrieved per query *(M2)* |
+
+No third-party API keys are needed.
+
+---
+
+## Database commands
+
+```bash
+npm run db:migrate   # Apply pending SQL migrations
+npm run db:seed      # Migrate + insert default users
+npm run db:setup     # migrate + seed
+```
+
+The dev server also auto-runs migrations on first database access.
 
 ---
 
 ## Testing Milestone 1
 
 ### Landing page
-Visit `/` — product pitch, feature cards, sign-up CTA.
+Visit `/` — product pitch for Unknown Twin, local-first messaging.
 
 ### Sign up
-1. Go to `/signup`, create an account with email + password.
-2. If email confirmation is enabled, click the link in your inbox.
-3. You should land on `/chat` after login.
+1. Go to `/signup`, create an account.
+2. You are signed in automatically and redirected to `/chat`.
 
-### Magic link login
-1. Go to `/login`, check **Send me a magic link instead**.
-2. Enter your email and submit.
-3. Click the link in your email → redirected to `/chat`.
+### Sign in
+1. Go to `/login` with a seed account (e.g. `student@unknown-twin.local` / `student1234`).
+2. Redirected to `/chat`.
 
 ### Protected routes
 - Visit `/chat` while logged out → redirected to `/login?redirect=/chat`.
-- `/dashboard` and `/assignments` are accessible to any authenticated user (student role default).
+- `/mentor` requires mentor or admin role.
+- `/admin` requires admin role.
 
-### Role-based access
-Promote a user in the Supabase SQL editor:
-
-```sql
--- Make a mentor
-update public.profiles set role = 'mentor' where id = '<user-uuid>';
-
--- Make an admin
-update public.profiles set role = 'admin' where id = '<user-uuid>';
-```
+### Role access
 
 | Route | student | mentor | admin |
 |-------|---------|--------|-------|
 | `/chat` | ✅ | ✅ | ✅ |
-| `/dashboard` | ✅ | ❌ | ✅ |
-| `/assignments` | ✅ | ❌ | ✅ |
+| `/dashboard`, `/assignments` | ✅ | ❌ | ✅ |
 | `/mentor` | ❌ | ✅ | ✅ |
 | `/admin` | ❌ | ❌ | ✅ |
 
-### Admissions stub
-Visit `/admissions` — public roadmap placeholder (no auth required).
+### Sign out
+Use the user menu → Sign out.
 
 ---
 
@@ -138,61 +142,66 @@ Visit `/admissions` — public roadmap placeholder (no auth required).
 
 ```
 .
-├── middleware.ts                 # Auth session refresh + route protection
-├── supabase/
-│   └── migrations/
-│       └── 001_profiles.sql      # Profiles table, RLS, signup trigger
+├── data/                         # SQLite DB + uploads (gitignored)
+├── db/
+│   ├── migrations/001_initial.sql
+│   ├── migrate.ts                # CLI migration runner
+│   └── seed.ts                   # CLI seed runner
+├── middleware.ts                 # Auth + role checks
 ├── src/
 │   ├── app/
+│   │   ├── api/auth/             # login, signup, logout, me
 │   │   ├── (marketing)/          # Landing page
 │   │   ├── (auth)/               # Login, signup
-│   │   ├── (app)/                # Authenticated routes
-│   │   ├── admissions/           # Public admissions stub
-│   │   └── auth/callback/        # OAuth / magic link callback
+│   │   └── (app)/                # Protected routes
 │   ├── components/
-│   │   ├── auth/                 # Login & signup forms
-│   │   ├── layout/               # Headers, user menu
-│   │   ├── providers/            # TanStack Query
-│   │   └── ui/                   # shadcn/ui primitives
 │   ├── lib/
-│   │   ├── auth/                 # getProfile, requireRole
-│   │   ├── supabase/             # Client, server, middleware helpers
-│   │   ├── validations/          # Zod schemas
+│   │   ├── auth/                 # session, password, middleware
+│   │   ├── db/                   # SQLite connection + migrations
+│   │   ├── prompts.ts            # AI system prompt (Unknown Twin)
 │   │   └── constants.ts
-│   └── types/
-│       └── database.ts           # Supabase types (profiles)
+│   └── types/auth.ts
 ├── .env.example
 └── README.md
 ```
 
 ---
 
-## Scripts
+## LLM engine (Milestone 3+)
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server (Turbopack) |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | ESLint |
+`lib/llm.ts` will support two local backends via `LLM_ENGINE`:
+
+### `transformers` (default)
+Runs a small instruct model in-process via `@huggingface/transformers`. No separate app, no account. Model weights download once, then run offline.
+
+### `ollama` (optional, better quality)
+Requires [Ollama](https://ollama.com) installed locally:
+
+```bash
+# Install Ollama, then pull a model:
+ollama pull llama3.1:8b
+
+# Set in .env.local:
+LLM_ENGINE=ollama
+OLLAMA_MODEL=llama3.1:8b
+```
 
 ---
 
-## Roadmap (upcoming milestones)
+## Roadmap
 
 | # | Milestone | Status |
 |---|-----------|--------|
-| 1 | Scaffold, auth, profiles, protected routes | ✅ Done |
-| 2 | Knowledge base + RAG (pgvector, ingestion, seed) | 🔜 Next |
-| 3 | AI Professor chat (streaming, sources) | Planned |
+| 1 | Scaffold, SQLite, local auth, protected routes | ✅ Done |
+| 2 | Knowledge base + RAG (embeddings, ingestion, seed KB) | 🔜 Next |
+| 3 | AI Professor chat (streaming, local LLM) | Planned |
 | 4 | Escalation + self-learning loop | Planned |
-| 5 | Practice exercises + assignment feedback | Planned |
+| 5 | Practice + assignment feedback | Planned |
 | 6 | AI Coach dashboard | Planned |
-| 7 | Admin KB manager, admissions stub, voice hook | Planned |
+| 7 | Admin KB manager, admissions stub | Planned |
 
 ---
 
 ## License
 
 Private — all rights reserved.
->>>>>>> 0388641 (feat: Milestone 1 scaffold — Next.js, Supabase auth, profiles, protected routes)

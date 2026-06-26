@@ -20,7 +20,7 @@ export default function SignupPage() {
           </div>
           <CardTitle className="font-heading text-2xl">Join {APP_NAME}</CardTitle>
           <CardDescription>
-            Create your student account to access your AI Professor
+            Create your student account to access your AI Professor at Unknown Twin
           </CardDescription>
         </CardHeader>
         <CardContent>

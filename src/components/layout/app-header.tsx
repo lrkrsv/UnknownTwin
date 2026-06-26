@@ -13,13 +13,13 @@ import {
 } from "@/components/ui/sheet";
 import { UserMenu } from "@/components/layout/user-menu";
 import { APP_NAME } from "@/lib/constants";
-import type { Profile } from "@/types/database";
+import type { User } from "@/types/auth";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
   label: string;
-  roles?: Array<Profile["role"]>;
+  roles?: Array<User["role"]>;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -31,15 +31,15 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function NavLinks({
-  profile,
+  user,
   onNavigate,
 }: {
-  profile: Profile;
+  user: User;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const items = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(profile.role)
+    (item) => !item.roles || item.roles.includes(user.role)
   );
 
   return (
@@ -67,7 +67,7 @@ function NavLinks({
   );
 }
 
-export function AppHeader({ profile }: { profile: Profile }) {
+export function AppHeader({ user }: { user: User }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -76,7 +76,7 @@ export function AppHeader({ profile }: { profile: Profile }) {
             {APP_NAME}
           </Link>
           <div className="hidden md:block">
-            <NavLinks profile={profile} />
+            <NavLinks user={user} />
           </div>
         </div>
 
@@ -95,12 +95,12 @@ export function AppHeader({ profile }: { profile: Profile }) {
                   <SheetTitle className="font-heading">{APP_NAME}</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6">
-                  <NavLinks profile={profile} />
+                  <NavLinks user={user} />
                 </div>
               </SheetContent>
             </Sheet>
           </div>
-          <UserMenu profile={profile} />
+          <UserMenu user={user} />
         </div>
       </div>
     </header>

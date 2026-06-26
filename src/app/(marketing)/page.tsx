@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Brain, MessageSquare, Shield, Users } from "lucide-react";
+import { BookOpen, Brain, HardDrive, MessageSquare, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +42,12 @@ const features = [
     description:
       "Every response cites official sources. Policies and grades always stay with your lecturers.",
   },
+  {
+    icon: HardDrive,
+    title: "Fully Local",
+    description:
+      "Runs entirely on your machine — SQLite database, local embeddings, and a local LLM. No cloud required.",
+  },
 ];
 
 export default function LandingPage() {
@@ -57,9 +63,9 @@ export default function LandingPage() {
               Your personal AI campus, grounded in truth
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              {APP_NAME} gives every student an AI Professor, AI Coach, and AI
-              Mentor — all powered only by your university&apos;s official
-              knowledge base.
+              {APP_NAME} gives every student at {UNIVERSITY_NAME} an AI Professor,
+              AI Coach, and AI Mentor — powered only by official knowledge,
+              running fully offline on your machine.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button size="lg" nativeButton={false} render={<Link href="/signup" />}>
@@ -114,7 +120,7 @@ export default function LandingPage() {
             Ready to explore your AI campus?
           </h2>
           <p className="mt-2 text-muted-foreground">
-            Create a free account with your university email.
+            Create a local account — no external services required.
           </p>
           <Button className="mt-6" nativeButton={false} render={<Link href="/signup" />}>
             Create account

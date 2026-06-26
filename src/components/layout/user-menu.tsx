@@ -13,8 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@/types/database";
+import type { User as AppUser } from "@/types/auth";
 
 function initials(name: string | null): string {
   if (!name?.trim()) return "?";
@@ -26,12 +25,11 @@ function initials(name: string | null): string {
     .toUpperCase();
 }
 
-export function UserMenu({ profile }: { profile: Profile }) {
+export function UserMenu({ user }: { user: AppUser }) {
   const router = useRouter();
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
     router.refresh();
   }
@@ -43,11 +41,11 @@ export function UserMenu({ profile }: { profile: Profile }) {
           <Button variant="ghost" className="gap-2 px-2">
             <Avatar className="size-8">
               <AvatarFallback className="text-xs">
-                {initials(profile.full_name)}
+                {initials(user.full_name)}
               </AvatarFallback>
             </Avatar>
             <span className="hidden max-w-[120px] truncate text-sm sm:inline">
-              {profile.full_name ?? "Student"}
+              {user.full_name}
             </span>
           </Button>
         }
@@ -55,9 +53,9 @@ export function UserMenu({ profile }: { profile: Profile }) {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">{profile.full_name ?? "User"}</p>
+            <p className="text-sm font-medium">{user.full_name}</p>
             <Badge variant="secondary" className="w-fit capitalize">
-              {profile.role}
+              {user.role}
             </Badge>
           </div>
         </DropdownMenuLabel>

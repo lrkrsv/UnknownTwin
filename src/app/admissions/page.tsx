@@ -39,7 +39,8 @@ export default function AdmissionsPage() {
             </CardTitle>
             <CardDescription>
               A public chat for prospective students at {UNIVERSITY_NAME} —
-              programmes, scholarships, requirements, and career paths.
+              programmes, scholarships, requirements, and career paths. Runs
+              locally with the same RAG pipeline, scoped to admissions content.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
