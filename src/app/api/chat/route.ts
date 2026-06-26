@@ -141,7 +141,7 @@ export async function POST(request: Request) {
           fullAnswer = stripThinkingBlocks(fullAnswer);
         }
 
-        insertMessage({
+        const aiMessage = insertMessage({
           conversationId,
           role: "ai",
           content: fullAnswer.trim(),
@@ -150,7 +150,9 @@ export async function POST(request: Request) {
           needsHuman,
         });
 
-        controller.enqueue(sseEncode("done", {}));
+        controller.enqueue(
+          sseEncode("done", { messageId: aiMessage.id })
+        );
       } catch (error) {
         console.error("Chat stream error:", error);
         controller.enqueue(

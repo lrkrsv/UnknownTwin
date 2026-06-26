@@ -12,6 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { APP_NAME } from "@/lib/constants";
 import type { User } from "@/types/auth";
 import { cn } from "@/lib/utils";
@@ -100,6 +101,7 @@ export function AppHeader({ user }: { user: User }) {
               </SheetContent>
             </Sheet>
           </div>
+          {user.role === "student" && <NotificationBell />}
           <UserMenu user={user} />
         </div>
       </div>

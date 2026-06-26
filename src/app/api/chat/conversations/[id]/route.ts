@@ -5,6 +5,7 @@ import {
   getMessages,
   parseMessageSources,
 } from "@/lib/chat-db";
+import { getEscalationStatusesByMessageIds } from "@/lib/escalations-db";
 
 export async function GET(
   _request: Request,
@@ -19,13 +20,19 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const messages = getMessages(id).map((m) => ({
+    const rows = getMessages(id);
+    const escalationStatuses = getEscalationStatusesByMessageIds(
+      rows.filter((m) => m.role === "ai").map((m) => m.id)
+    );
+
+    const messages = rows.map((m) => ({
       id: m.id,
       role: m.role,
       content: m.content,
       confidence: m.confidence,
       sources: parseMessageSources(m.sources),
       needsHuman: Boolean(m.needs_human),
+      escalationStatus: escalationStatuses[m.id] ?? null,
       createdAt: m.created_at,
     }));
 

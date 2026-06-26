@@ -10,12 +10,14 @@ interface MessageListProps {
   messages: ChatMessage[];
   isWarmingUp: boolean;
   isEmpty: boolean;
+  onEscalated?: () => void;
 }
 
 export function MessageList({
   messages,
   isWarmingUp,
   isEmpty,
+  onEscalated,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +46,11 @@ export function MessageList({
     <ScrollArea className="flex-1 px-4 py-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onEscalated={onEscalated}
+          />
         ))}
         {isWarmingUp && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

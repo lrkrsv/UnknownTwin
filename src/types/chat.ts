@@ -12,6 +12,8 @@ export interface Conversation {
   created_at: string;
 }
 
+export type EscalationStatus = "open" | "answered" | "closed";
+
 export interface ChatMessage {
   id: string;
   role: "student" | "ai" | "mentor";
@@ -19,8 +21,13 @@ export interface ChatMessage {
   confidence?: number | null;
   sources?: ChatSource[];
   needsHuman?: boolean;
+  escalationStatus?: EscalationStatus | null;
   createdAt?: string;
   streaming?: boolean;
+}
+
+export interface ChatDoneEvent {
+  messageId: string;
 }
 
 export interface ChatMetaEvent {

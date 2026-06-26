@@ -3,16 +3,19 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { SourceChips } from "@/components/chat/source-chips";
 import { MentorCta } from "@/components/chat/mentor-cta";
 import type { ChatMessage } from "@/types/chat";
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onEscalated?: () => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onEscalated }: MessageBubbleProps) {
   const isStudent = message.role === "student";
+  const isMentor = message.role === "mentor";
 
   return (
     <div
@@ -21,12 +24,20 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         isStudent ? "items-end" : "items-start"
       )}
     >
+      {isMentor && (
+        <Badge variant="secondary" className="text-[10px]">
+          University mentor
+        </Badge>
+      )}
+
       <div
         className={cn(
           "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
           isStudent
             ? "bg-primary text-primary-foreground"
-            : "border bg-card text-card-foreground"
+            : isMentor
+              ? "border border-emerald-200 bg-emerald-50 text-foreground dark:border-emerald-900 dark:bg-emerald-950/40"
+              : "border bg-card text-card-foreground"
         )}
       >
         {isStudent ? (
@@ -46,13 +57,21 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
       </div>
 
-      {!isStudent && !message.streaming && message.sources && message.sources.length > 0 && (
-        <SourceChips sources={message.sources} />
-      )}
+      {!isStudent &&
+        !message.streaming &&
+        message.sources &&
+        message.sources.length > 0 && <SourceChips sources={message.sources} />}
 
-      {!isStudent && !message.streaming && message.needsHuman && (
-        <MentorCta />
-      )}
+      {!isStudent &&
+        !isMentor &&
+        !message.streaming &&
+        message.needsHuman && (
+          <MentorCta
+            messageId={message.id}
+            escalationStatus={message.escalationStatus}
+            onEscalated={onEscalated}
+          />
+        )}
     </div>
   );
 }

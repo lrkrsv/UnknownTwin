@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatInput } from "@/components/chat/chat-input";
 import { MessageList } from "@/components/chat/message-list";
-import type { ChatMessage, ChatMetaEvent, Conversation } from "@/types/chat";
+import type { ChatMessage, ChatMetaEvent, ChatDoneEvent, Conversation } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
 function parseSseBlock(block: string): { event: string; data: string } | null {
@@ -27,7 +28,7 @@ async function consumeChatStream(
   response: Response,
   onMeta: (meta: ChatMetaEvent) => void,
   onToken: (delta: string) => void,
-  onDone: () => void,
+  onDone: (done: ChatDoneEvent) => void,
   onError: (message: string) => void
 ) {
   if (!response.body) throw new Error("No response body");
@@ -55,7 +56,7 @@ async function consumeChatStream(
       } else if (parsed.event === "token") {
         onToken((payload.delta as string) ?? "");
       } else if (parsed.event === "done") {
-        onDone();
+        onDone(payload as unknown as ChatDoneEvent);
       } else if (parsed.event === "error") {
         onError((payload.message as string) ?? "Stream error");
       }
@@ -64,6 +65,8 @@ async function consumeChatStream(
 }
 
 export function ChatView() {
+  const searchParams = useSearchParams();
+  const queryConversationId = searchParams.get("conversation");
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -93,6 +96,12 @@ export function ChatView() {
       }))
     );
   }, []);
+
+  useEffect(() => {
+    if (queryConversationId) {
+      setActiveId(queryConversationId);
+    }
+  }, [queryConversationId]);
 
   useEffect(() => {
     if (activeId) {
@@ -168,11 +177,11 @@ export function ChatView() {
             )
           );
         },
-        () => {
+        (done) => {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === streamingIdRef.current
-                ? { ...m, streaming: false }
+                ? { ...m, id: done.messageId, streaming: false }
                 : m
             )
           );
@@ -272,6 +281,9 @@ export function ChatView() {
           messages={messages}
           isWarmingUp={isWarmingUp}
           isEmpty={!activeId && messages.length === 0}
+          onEscalated={() => {
+            if (activeId) loadConversation(activeId).catch(console.error);
+          }}
         />
 
         <ChatInput onSend={handleSend} disabled={isStreaming} />

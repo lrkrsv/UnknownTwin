@@ -291,6 +291,56 @@ No code changes required — `lib/llm.ts` abstracts both backends.
 
 ---
 
+## Milestone 4 — Escalation + self-learning loop
+
+- `db/migrations/004_escalations_conversation_id.sql` — links escalations to conversations
+- `POST /api/escalations` — student escalates a low-confidence AI message
+- `POST /api/escalations/:id/answer` — mentor answers; inserts mentor message, notification, and ingests Q&A into KB
+- `GET /api/notifications`, `POST /api/notifications/:id/read` — in-app notification bell
+- `/mentor` — mentor dashboard (open + answered escalations)
+- Student chat — "Ask a university mentor" CTA, escalation badges, mentor replies in thread
+
+### Escalation → mentor answer → self-learning flow
+
+1. Student asks a question **outside the seeded KB** (e.g. parking permit refund policy).
+2. Retrieval score is below `RAG_CONFIDENCE_THRESHOLD` → AI gives a cautious answer + **Ask a university mentor** CTA.
+3. Student clicks the CTA → `POST /api/escalations` creates an `open` escalation with the preceding student question copied in.
+4. Mentor logs in at `/mentor`, sees the escalation with student context + AI's attempted answer, submits a reply.
+5. `POST /api/escalations/:id/answer` atomically:
+   - Marks escalation `answered`
+   - Inserts a `mentor` role message in the student's conversation thread
+   - Creates an `escalation_answered` notification for the student
+   - Calls `ingestDocument(...)` with `source_type = 'mentor_answer'` so the Q&A is chunked + embedded into the KB
+6. Next time any student asks the same (or similar) question, retrieval surfaces the mentor answer with a high score → confident AI response, no CTA.
+
+### Demo acceptance test #4 (self-learning proof)
+
+```bash
+npm run db:setup
+npm run dev
+```
+
+**Tab 1 — Student (`student@demo.test` / `student1234`):**
+1. Open `/chat`, ask: *"What is the parking permit refund policy at Unknown Twin?"*
+2. Low-confidence answer appears with mentor CTA → click **Ask a university mentor** → badge shows *Escalated — waiting for a mentor.*
+
+**Tab 2 — Mentor (`mentor@demo.test` / `mentor1234`):**
+3. Open `/mentor` → the question appears in the open queue.
+4. Submit an answer, e.g. *"Full refunds are available within 14 days of purchase if the permit is unused."*
+
+**Tab 1 — Student again:**
+5. Bell icon shows unread notification → click it to jump to the conversation.
+6. Mentor's answer appears in the thread; badge shows *Answered by mentor.*
+
+**Tab 1 — New chat:**
+7. Start a **new conversation** and ask the same or similar question.
+8. Retrieval now hits the `mentor_answer` chunk → high confidence answer, **no mentor CTA**.
+
+**Role protection:**
+- Student visiting `/mentor` or calling `POST /api/escalations/:id/answer` → 403.
+
+---
+
 ## LLM engine
 
 `lib/llm.ts` supports two local backends via `LLM_ENGINE`:
@@ -320,8 +370,7 @@ OLLAMA_MODEL=llama3.1:8b
 | 1 | Scaffold, SQLite, local auth, protected routes | ✅ Done |
 | 2 | Knowledge base + RAG (embeddings, ingestion, retrieval) | ✅ Done |
 | 3 | AI Professor chat (streaming, local LLM) | ✅ Done |
-| 4 | Escalation + self-learning loop | 🔜 Next |
-| 4 | Escalation + self-learning loop | Planned |
+| 4 | Escalation + self-learning loop | ✅ Done |
 | 5 | Practice + assignment feedback | Planned |
 | 6 | AI Coach dashboard | Planned |
 | 7 | Admin KB manager, admissions stub | Planned |
