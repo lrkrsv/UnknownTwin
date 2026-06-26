@@ -9,10 +9,13 @@
     "lint": "eslint",
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
-    "db:setup": "npm run db:migrate && npm run db:seed"
+    "db:setup": "npm run db:migrate && npm run db:seed",
+    "seed": "tsx db/seed.ts",
+    "test:retrieve": "tsx db/test-retrieve.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@huggingface/transformers": "^4.2.0",
     "@tanstack/react-query": "^5.101.1",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.11.1",

@@ -15,8 +15,8 @@ An AI-powered **digital twin of Unknown Twin** — giving every student a person
 | Framework | Next.js 15 (App Router, TypeScript) |
 | Styling | Tailwind CSS + shadcn/ui |
 | Database | SQLite via `better-sqlite3` → `./data/aicampus.db` |
-| Vector store | Embeddings as JSON in SQLite; cosine similarity in Node |
-| Embeddings | `@huggingface/transformers` — Xenova/all-MiniLM-L6-v2 (384 dims) *(M2)* |
+| Vector store | Embeddings as BLOB (Float32) in SQLite; cosine similarity in Node |
+| Embeddings | `@huggingface/transformers` — Xenova/all-MiniLM-L6-v2 (384 dims) |
 | LLM | Pluggable `lib/llm.ts` — Transformers.js (default) or Ollama *(M3)* |
 | Auth | Local bcrypt passwords + signed httpOnly JWT cookies (`jose`) |
 | File storage | `./data/uploads/` |
