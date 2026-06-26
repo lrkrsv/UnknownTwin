@@ -6,6 +6,7 @@ const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
 
 env.cacheDir = path.join(process.cwd(), "data", "model-cache");
 env.allowLocalModels = true;
+env.allowRemoteModels = true;
 
 let extractorPromise: Promise<FeatureExtractionPipeline> | null = null;
 

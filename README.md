@@ -26,6 +26,53 @@ An AI-powered **digital twin of Unknown Twin** — giving every student a person
 
 ---
 
+## Milestone 2 — Knowledge base + RAG retrieval
+
+- `db/migrations/002_chunks_embedding_blob.sql` — stores embeddings as BLOB (Float32)
+- `lib/embeddings.ts` — in-process Transformers.js (`Xenova/all-MiniLM-L6-v2`, 384 dims)
+- `lib/chunk.ts` — text chunking (~800 chars, ~120 overlap)
+- `lib/ingest.ts` — chunk → embed → store in a SQLite transaction
+- `lib/retrieve.ts` — cosine similarity search (dot product on normalized vectors)
+- `POST /api/admin/documents` — admin-only ingestion API (Zod-validated)
+- Extended `db/seed.ts` — idempotent seed of the Business Model Canvas knowledge base
+
+### Seed the knowledge base
+
+```bash
+npm run seed
+```
+
+First run downloads the embedding model to `./data/model-cache/` (one-time). Subsequent runs are fully offline. Re-running seed is idempotent — it will not duplicate documents.
+
+### Test retrieval
+
+```bash
+npm run test:retrieve
+# Or with a custom query:
+npm run test:retrieve -- "What is a Value Proposition?"
+```
+
+### Test admin ingestion API
+
+```bash
+# 1. Start the dev server
+npm run dev
+
+# 2. Log in as admin and ingest (save the session cookie)
+curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@unknown-twin.local","password":"admin1234"}'
+
+curl -b cookies.txt -X POST http://localhost:3000/api/admin/documents \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"My Doc","source_type":"policy","module":"General","content":"Your document text here."}'
+# → {"documentId":"...","chunkCount":N}
+
+# 3. Same call as student returns 403
+```
+
+---
+
 ## Milestone 1 — What's included
 
 - Next.js 15 scaffold with TypeScript (strict), Tailwind CSS, shadcn/ui
@@ -84,11 +131,12 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|---------|-------------|
 | `JWT_SECRET` | *(required)* | Secret for signing session cookies (min 32 chars) |
 | `DATABASE_PATH` | `./data/aicampus.db` | SQLite database file path |
-| `LLM_ENGINE` | `transformers` | `transformers` (in-process) or `ollama` *(M3)* |
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama server URL *(M3)* |
-| `OLLAMA_MODEL` | `llama3.1:8b` | Ollama model name *(M3)* |
-| `CONFIDENCE_THRESHOLD` | `0.55` | RAG confidence cutoff *(M3)* |
-| `RAG_TOP_K` | `6` | Chunks retrieved per query *(M2)* |
+| `LLM_ENGINE` | `transformers` | `transformers` (in-process) or `ollama` |
+| `TRANSFORMERS_LLM_MODEL` | `onnx-community/Qwen3-0.6B-ONNX` | In-process LLM (when `LLM_ENGINE=transformers`) |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Ollama model name |
+| `RAG_CONFIDENCE_THRESHOLD` | `0.35` | Top retrieval score below this → mentor CTA |
+| `RAG_TOP_K` | `5` | Chunks retrieved per query |
 
 No third-party API keys are needed.
 
@@ -167,21 +215,83 @@ Use the user menu → Sign out.
 
 ---
 
-## LLM engine (Milestone 3+)
+## Milestone 3 — AI Professor chat
 
-`lib/llm.ts` will support two local backends via `LLM_ENGINE`:
+- `lib/llm.ts` — local LLM adapter (`transformers` default, `ollama` optional) with streaming
+- `lib/prompts.ts` — `buildProfessorPrompt()` for grounded markdown answers (no JSON from model)
+- **Retrieval-based confidence** — top cosine score vs `RAG_CONFIDENCE_THRESHOLD` (default `0.35`)
+- `POST /api/chat` — SSE stream (`meta` → `token` → `done`)
+- `/chat` UI — conversation sidebar, streaming messages, source chips, mentor CTA stub
+- Conversations and messages persist in SQLite
+
+### Use the chat
+
+```bash
+npm run db:setup    # ensure KB is seeded
+npm run dev
+# Sign in as student@unknown-twin.local / student1234
+# Open http://localhost:3000/chat
+```
+
+Try:
+- **In KB:** "What is the Business Model Canvas?" → streamed grounded answer + source chips
+- **Outside KB:** "What's the parking permit refund policy?" → low score, mentor CTA appears
+
+### CLI chat test (no browser)
+
+```bash
+npm run test:chat -- "What is the Business Model Canvas?"
+npm run test:chat -- "What's the parking permit refund policy?"
+```
+
+### Tuning `RAG_CONFIDENCE_THRESHOLD`
+
+Confidence comes from **retrieval**, not the LLM. The top cosine similarity score from `retrieve()` is compared to `RAG_CONFIDENCE_THRESHOLD`:
+
+- **Higher** (e.g. `0.5`) → stricter; more questions trigger the mentor CTA
+- **Lower** (e.g. `0.25`) → more permissive; LLM answers even with weaker matches
+
+Set in `.env.local`:
+```
+RAG_CONFIDENCE_THRESHOLD=0.35
+```
+
+### Switching `LLM_ENGINE`
+
+```bash
+# Default — in-process Transformers.js (downloads once to ./data/model-cache/)
+LLM_ENGINE=transformers
+
+# Optional — better quality via local Ollama
+LLM_ENGINE=ollama
+OLLAMA_MODEL=llama3.1:8b
+```
+
+Install Ollama and pull a model:
+```bash
+ollama pull llama3.1:8b
+```
+
+No code changes required — `lib/llm.ts` abstracts both backends.
+
+---
+
+## LLM engine
+
+`lib/llm.ts` supports two local backends via `LLM_ENGINE`:
 
 ### `transformers` (default)
-Runs a small instruct model in-process via `@huggingface/transformers`. No separate app, no account. Model weights download once, then run offline.
+Runs an instruct model in-process via `@huggingface/transformers`. Default model: `onnx-community/Qwen3-0.6B-ONNX`. Weights download once to `./data/model-cache/`, then run offline.
+
+Override with `TRANSFORMERS_LLM_MODEL` (e.g. `Xenova/Qwen2.5-0.5B-Instruct` if available on your machine).
 
 ### `ollama` (optional, better quality)
 Requires [Ollama](https://ollama.com) installed locally:
 
 ```bash
-# Install Ollama, then pull a model:
 ollama pull llama3.1:8b
 
-# Set in .env.local:
+# .env.local:
 LLM_ENGINE=ollama
 OLLAMA_MODEL=llama3.1:8b
 ```
@@ -193,8 +303,9 @@ OLLAMA_MODEL=llama3.1:8b
 | # | Milestone | Status |
 |---|-----------|--------|
 | 1 | Scaffold, SQLite, local auth, protected routes | ✅ Done |
-| 2 | Knowledge base + RAG (embeddings, ingestion, seed KB) | 🔜 Next |
-| 3 | AI Professor chat (streaming, local LLM) | Planned |
+| 2 | Knowledge base + RAG (embeddings, ingestion, retrieval) | ✅ Done |
+| 3 | AI Professor chat (streaming, local LLM) | ✅ Done |
+| 4 | Escalation + self-learning loop | 🔜 Next |
 | 4 | Escalation + self-learning loop | Planned |
 | 5 | Practice + assignment feedback | Planned |
 | 6 | AI Coach dashboard | Planned |
